@@ -1,54 +1,115 @@
-# E-Commerce Marketplace API 
+# E-Commerce Marketplace API
 
-A robust, production-ready Multi-vendor E-commerce Backend API built with Node.js, Express, and Sequelize (PostgreSQL). This project implements advanced features similar to major marketplaces like Daraz.
+A production-oriented multi-vendor e-commerce backend API built with Node.js, Express, and Sequelize (PostgreSQL). Implements marketplace workflows similar to platforms like Daraz/Amazon-style seller ecosystems.
 
-## 🚀 Key Features
+## Key Features
 
-- **Multi-vendor Architecture**: Comprehensive seller onboarding, shop management, and staff (sub-user) management via junction tables.
-- **Advanced Product Management**: Categories, brands, variants (color, size, material), and dynamic product attributes.
-- **Marketing & Campaigns**: Time-bound marketing campaigns with discount overrides for specific products.
-- **Financial System**: Integrated user wallets for faster checkouts and easy refunds, transaction history, and seller settlements.
-- **Customer Engagement**: Product Q&A (Ask a Question), shop following system, and verified purchase reviews.
-- **Order Lifecycle**: Automated inventory tracking, multi-step order processing, shipment event logging, and return management.
-- **Security & Audit**: JWT-based Role-Based Access Control (RBAC) and administrative activity logging.
+- **Multi-vendor architecture**: Seller onboarding, shop management, and staff (sub-user) management
+- **Advanced product catalog**: Categories, brands, variants, and dynamic attributes
+- **Marketing & campaigns**: Time-bound campaigns with product-level discount overrides
+- **Financial system**: User wallets, refunds, transaction history, and seller settlements
+- **Customer engagement**: Product Q&A, shop following, and verified-purchase reviews
+- **Order lifecycle**: Inventory tracking, multi-step orders, shipment events, and returns
+- **Security & audit**: JWT-based RBAC and administrative activity logging
 
-## 🛠️ Tech Stack
+## Tech Stack
 
-- **Runtime**: Node.js
-- **Framework**: Express.js
-- **ORM**: Sequelize
-- **Database**: PostgreSQL
-- **Authentication**: JWT (JSON Web Tokens)
-- **Documentation**: Swagger UI
+| Layer | Technology |
+| --- | --- |
+| Runtime | Node.js |
+| Framework | Express.js |
+| ORM | Sequelize |
+| Database | PostgreSQL |
+| Cache / messaging-ready | Redis (via Docker Compose) |
+| Auth | JWT (RBAC) |
+| Docs | Swagger UI |
+| Containers | Docker, Docker Compose |
 
-## 📂 Project Structure
+## Project Structure
 
-- `controllers/`: Request handling and response formatting.
-- `services/`: Core business logic and database interactions.
-- `models/`: Database schema definitions and relationships ([dbModel.js](models/dbModel.js)).
-- `middleware/`: Authentication, authorization, and validation logic.
-- `routes/`: API endpoint definitions ([ApiRoutes.js](routes/ApiRoutes.js)).
-- `adapters/`: External service integrations (Uploads, Errors).
+- `controllers/` — request handling and response formatting
+- `services/` — business logic
+- `models/` — schema and relationships ([dbModel.js](models/dbModel.js))
+- `middleware/` — authentication, authorization, validation
+- `routes/` — API endpoints ([ApiRoutes.js](routes/ApiRoutes.js))
+- `adapters/` — external integrations (uploads, errors)
 
-## ⚙️ Getting Started
+## Quick Start with Docker (recommended)
 
-1. **Clone the repository**
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-3. **Configure Environment Variables**
-   Create a `.env` file based on the project requirements (DB credentials, JWT secret).
-4. **Run the application**
-   ```bash
-   npm start
-   ```
+Someone should be able to clone this repo and run the stack with one command.
 
-## 📜 API Documentation
+### 1. Configure environment
 
-Once the server is running, you can access the interactive Swagger documentation at:
-`http://localhost:3000/api-docs` (Default port)
+```bash
+cp .env.example .env
+```
 
-## 🤝 Contributing
+Update `JWT_SECRET` in `.env` before sharing or deploying.
 
-This project is built for real-world use cases. Feel free to explore the code and implement new features.
+### 2. Start the stack
+
+```bash
+docker compose up --build
+```
+
+This starts:
+
+- **API** on `http://localhost:3000`
+- **PostgreSQL** on port `5432`
+- **Redis** on port `6379`
+
+### 3. Verify
+
+- Health: `http://localhost:3000/api/health`
+- Swagger: `http://localhost:3000/api-docs`
+
+Stop the stack:
+
+```bash
+docker compose down
+```
+
+Persist data volumes while removing containers:
+
+```bash
+docker compose down
+# To also wipe DB/cache volumes:
+# docker compose down -v
+```
+
+## Local Development (without Docker for the API)
+
+1. Ensure PostgreSQL (and optionally Redis) are running
+2. Install dependencies:
+
+```bash
+npm install
+```
+
+3. Copy and configure env:
+
+```bash
+cp .env.example .env
+```
+
+For local API runs, set `POSTGRES_HOST=localhost` in `.env`.
+
+4. Start:
+
+```bash
+npm run dev
+```
+
+## API Documentation
+
+Interactive Swagger UI:
+
+`http://localhost:3000/api-docs`
+
+Role-based endpoint reference: [API_ROLES_DOCUMENTATION.md](API_ROLES_DOCUMENTATION.md)
+
+Postman collection: [POSTMAN_COLLECTION.json](POSTMAN_COLLECTION.json)
+
+## Contributing
+
+This project is built around real marketplace use cases. Explore the modules and extend carefully with tests and clear commits.

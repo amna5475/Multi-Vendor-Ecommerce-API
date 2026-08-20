@@ -1,0 +1,65 @@
+services:
+  api:
+    build: .
+    container_name: ecommerce-api
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - ecommerce-network
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: ecommerce-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DBNAME:-ecommerce}
+      POSTGRES_USER: ${POSTGRES_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASS:-postgres}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USERNAME:-postgres} -d ${POSTGRES_DBNAME:-ecommerce}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - ecommerce-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: ecommerce-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - ecommerce-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  ecommerce-network:
+    driver: bridge
