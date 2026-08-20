@@ -10,6 +10,10 @@ const swaggerDocs = require('./config/swagger');
 const routes = require('./routes/index');
 const errorHandler = require('./middleware/errorHandler');
 const { NotFoundError } = require('./adapters/errorAdapter');
+const { getRedisClient } = require('./config/redis');
+
+// Initialize Redis client early (fails open if unavailable)
+getRedisClient();
 
 const app = express();
 

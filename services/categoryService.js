@@ -1,5 +1,6 @@
 const { Models } = require('../models/dbModel');
 const { NotFoundError } = require('../adapters/errorAdapter');
+const CacheHelper = require('../helpers/cacheHelper');
 
 /**
  * Category Service for business logic and DB operations
@@ -11,7 +12,9 @@ const CategoryService = {
    */
   createCategory: async (categoryData) => {
     const { categories } = await Models();
-    return await categories.create(categoryData);
+    const category = await categories.create(categoryData);
+    await CacheHelper.invalidateCategories(category.id);
+    return category;
   },
 
   /**
@@ -19,8 +22,13 @@ const CategoryService = {
    * @param {Object} filter - Optional filters
    */
   getAllCategories: async (filter = {}) => {
-    const { categories } = await Models();
-    return await categories.findAll({ where: filter });
+    const cacheKey = await CacheHelper.categoryListKey(filter);
+    const ttl = CacheHelper.ttls().categoryTtl;
+
+    return CacheHelper.getOrSet(cacheKey, ttl, async () => {
+      const { categories } = await Models();
+      return categories.findAll({ where: filter });
+    });
   },
 
   /**
@@ -28,14 +36,23 @@ const CategoryService = {
    * @param {String} id - Category ID
    */
   getCategoryById: async (id) => {
+    const cacheKey = CacheHelper.categoryDetailKey(id);
+    const ttl = CacheHelper.ttls().categoryTtl;
+
+    const cached = await CacheHelper.get(cacheKey);
+    if (cached) return cached;
+
     const { categories } = await Models();
     const foundCategory = await categories.findByPk(id, {
-        include: [{ model: categories, as: 'SubCategories' }]
+      include: [{ model: categories, as: 'SubCategories' }]
     });
     if (!foundCategory) {
       throw NotFoundError('Category not found');
     }
-    return foundCategory;
+
+    const plain = CacheHelper.toPlain(foundCategory);
+    await CacheHelper.set(cacheKey, plain, ttl);
+    return plain;
   },
 
   /**
@@ -44,8 +61,15 @@ const CategoryService = {
    * @param {Object} updateData - Data to update
    */
   updateCategory: async (id, updateData) => {
-    const category = await CategoryService.getCategoryById(id);
-    return await category.update(updateData);
+    const { categories } = await Models();
+    const category = await categories.findByPk(id);
+    if (!category) {
+      throw NotFoundError('Category not found');
+    }
+
+    const updated = await category.update(updateData);
+    await CacheHelper.invalidateCategories(id);
+    return updated;
   },
 
   /**
@@ -53,8 +77,15 @@ const CategoryService = {
    * @param {String} id - Category ID
    */
   deleteCategory: async (id) => {
-    const category = await CategoryService.getCategoryById(id);
-    return await category.destroy();
+    const { categories } = await Models();
+    const category = await categories.findByPk(id);
+    if (!category) {
+      throw NotFoundError('Category not found');
+    }
+
+    const result = await category.destroy();
+    await CacheHelper.invalidateCategories(id);
+    return result;
   }
 };
 

@@ -24,6 +24,9 @@ const ForbiddenError = (message = 'Forbidden') =>
 const NotFoundError = (message = 'Resource not found') => 
   createError(message, 404, 'NotFoundError');
 
+const TooManyRequestsError = (message = 'Too many requests') =>
+  createError(message, 429, 'TooManyRequestsError');
+
 const InternalServerError = (message = 'Internal Server Error') => 
   createError(message, 500, 'InternalServerError');
 
@@ -32,5 +35,6 @@ module.exports = {
   UnauthorizedError,
   ForbiddenError,
   NotFoundError,
+  TooManyRequestsError,
   InternalServerError
 };

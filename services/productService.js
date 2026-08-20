@@ -1,5 +1,6 @@
 const { Models, sequelize } = require('../models/dbModel');
 const { NotFoundError, ForbiddenError } = require('../adapters/errorAdapter');
+const CacheHelper = require('../helpers/cacheHelper');
 
 /**
  * Product Service for business logic and DB operations
@@ -29,6 +30,7 @@ const ProductService = {
       }
 
       await transaction.commit();
+      await CacheHelper.invalidateProducts(product.id);
       return await ProductService.getProductById(product.id);
     } catch (error) {
       await transaction.rollback();
@@ -41,15 +43,20 @@ const ProductService = {
    * @param {Object} filter - Optional filters
    */
   getAllProducts: async (filter = {}) => {
-    const { products, product_variants, product_images, brands, categories } = await Models();
-    return await products.findAll({ 
-      where: filter,
-      include: [
-        { model: product_variants },
-        { model: product_images },
-        { model: brands },
-        { model: categories }
-      ]
+    const cacheKey = await CacheHelper.productListKey(filter);
+    const ttl = CacheHelper.ttls().productListTtl;
+
+    return CacheHelper.getOrSet(cacheKey, ttl, async () => {
+      const { products, product_variants, product_images, brands, categories } = await Models();
+      return products.findAll({
+        where: filter,
+        include: [
+          { model: product_variants },
+          { model: product_images },
+          { model: brands },
+          { model: categories }
+        ]
+      });
     });
   },
 
@@ -58,6 +65,12 @@ const ProductService = {
    * @param {String} id - Product ID
    */
   getProductById: async (id) => {
+    const cacheKey = CacheHelper.productDetailKey(id);
+    const ttl = CacheHelper.ttls().productDetailTtl;
+
+    const cached = await CacheHelper.get(cacheKey);
+    if (cached) return cached;
+
     const { products, product_variants, product_images, brands, categories } = await Models();
     const foundProduct = await products.findByPk(id, {
       include: [
@@ -70,7 +83,10 @@ const ProductService = {
     if (!foundProduct) {
       throw NotFoundError('Product not found');
     }
-    return foundProduct;
+
+    const plain = CacheHelper.toPlain(foundProduct);
+    await CacheHelper.set(cacheKey, plain, ttl);
+    return plain;
   },
 
   /**
@@ -80,8 +96,11 @@ const ProductService = {
    * @param {Object} updateData - Data to update
    */
   updateProduct: async (id, sellerId, updateData) => {
-    const { product_variants, product_images } = await Models();
-    const product = await ProductService.getProductById(id);
+    const { products, product_variants, product_images } = await Models();
+    const product = await products.findByPk(id);
+    if (!product) {
+      throw NotFoundError('Product not found');
+    }
 
     if (product.seller_id !== sellerId) {
       throw ForbiddenError('You do not have permission to update this product');
@@ -106,6 +125,7 @@ const ProductService = {
       }
 
       await transaction.commit();
+      await CacheHelper.invalidateProducts(id);
       return await ProductService.getProductById(id);
     } catch (error) {
       await transaction.rollback();
@@ -119,11 +139,18 @@ const ProductService = {
    * @param {String} sellerId - Seller ID (for ownership check)
    */
   deleteProduct: async (id, sellerId) => {
-    const product = await ProductService.getProductById(id);
+    const { products } = await Models();
+    const product = await products.findByPk(id);
+    if (!product) {
+      throw NotFoundError('Product not found');
+    }
     if (product.seller_id !== sellerId) {
       throw ForbiddenError('You do not have permission to delete this product');
     }
-    return await product.destroy();
+
+    const result = await product.destroy();
+    await CacheHelper.invalidateProducts(id);
+    return result;
   },
 
   /**

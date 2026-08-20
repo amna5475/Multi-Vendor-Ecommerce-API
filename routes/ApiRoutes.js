@@ -25,6 +25,7 @@ const AdminLogController = require('../controllers/adminLogController');
 // Middleware
 const validate = require('../middleware/validation');
 const { authMiddleware, authorize } = require('../middleware/auth');
+const { authRateLimiter, apiRateLimiter } = require('../middleware/rateLimiter');
 
 // Validation Rules
 const registerRules = {
@@ -65,12 +66,21 @@ const staffRegisterRules = {
   phone: 'required|string'
 };
 
+const { isRedisReady } = require('../config/redis');
+
 /**
  * Health Check
  */
 router.get('/health', (req, res) => {
-  res.status(200).json({ status: 'OK', message: 'API is running' });
+  res.status(200).json({
+    status: 'OK',
+    message: 'API is running',
+    redis: isRedisReady() ? 'connected' : 'unavailable'
+  });
 });
+
+// Soft API-wide rate limit (Redis-backed; skipped if Redis is down)
+router.use(apiRateLimiter);
 
 /**
  * Auth Routes
@@ -99,7 +109,7 @@ router.get('/health', (req, res) => {
  *       201:
  *         description: User registered successfully
  */
-router.post('/auth/register', validate(registerRules), AuthController.register);
+router.post('/auth/register', authRateLimiter, validate(registerRules), AuthController.register);
 
 /**
  * @swagger
@@ -121,7 +131,7 @@ router.post('/auth/register', validate(registerRules), AuthController.register);
  *       200:
  *         description: Login successful
  */
-router.post('/auth/login', validate(loginRules), AuthController.login);
+router.post('/auth/login', authRateLimiter, validate(loginRules), AuthController.login);
 
 /**
  * Product Routes

@@ -11,6 +11,7 @@ A production-oriented multi-vendor e-commerce backend API built with Node.js, Ex
 - **Customer engagement**: Product Q&A, shop following, and verified-purchase reviews
 - **Order lifecycle**: Inventory tracking, multi-step orders, shipment events, and returns
 - **Security & audit**: JWT-based RBAC and administrative activity logging
+- **Redis performance layer**: product/category caching and Redis-backed rate limiting
 
 ## Tech Stack
 
@@ -20,17 +21,29 @@ A production-oriented multi-vendor e-commerce backend API built with Node.js, Ex
 | Framework | Express.js |
 | ORM | Sequelize |
 | Database | PostgreSQL |
-| Cache / messaging-ready | Redis (via Docker Compose) |
+| Cache & rate limiting | Redis (`ioredis`) |
 | Auth | JWT (RBAC) |
 | Docs | Swagger UI |
 | Containers | Docker, Docker Compose |
+
+## Why Redis is used
+
+Redis is not included as a buzzword — it solves concrete marketplace bottlenecks:
+
+1. **Product & category caching** — public catalog reads (`GET /products`, `GET /products/:id`, `GET /categories`) are cached with short TTLs so high-traffic browsing does not hit PostgreSQL on every request.
+2. **Cache invalidation on writes** — create/update/delete of products or categories bumps a version key and clears detail keys so shoppers do not see stale catalog data.
+3. **Auth & API rate limiting** — login/register and general API traffic are limited per IP using Redis counters to reduce brute-force and abuse risk.
+
+If Redis is down, the API **fails open**: requests still succeed against PostgreSQL, without cache/rate-limit storage.
 
 ## Project Structure
 
 - `controllers/` — request handling and response formatting
 - `services/` — business logic
 - `models/` — schema and relationships ([dbModel.js](models/dbModel.js))
-- `middleware/` — authentication, authorization, validation
+- `middleware/` — authentication, authorization, validation, rate limiting
+- `helpers/cacheHelper.js` — Redis cache get/set/invalidation helpers
+- `config/redis.js` — shared Redis client
 - `routes/` — API endpoints ([ApiRoutes.js](routes/ApiRoutes.js))
 - `adapters/` — external integrations (uploads, errors)
 
