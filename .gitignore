@@ -4,3 +4,5 @@ node_modules/
 public/uploads/
 *.log
 package-lock.json
+coverage/
+tests/.db-status

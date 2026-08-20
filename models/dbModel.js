@@ -662,6 +662,9 @@ exports.dbSync = async () => {
     console.log('Database synchronized.');
   } catch (error) {
     console.error('Unable to connect to the database:', error);
+    if (process.env.NODE_ENV === 'test') {
+      throw error;
+    }
     process.exit(1);
   }
 };

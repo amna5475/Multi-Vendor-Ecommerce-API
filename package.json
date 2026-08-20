@@ -4,7 +4,10 @@
   "private": true,
   "scripts": {
     "start": "node ./bin/www",
-    "dev": "nodemon ./bin/www"
+    "dev": "nodemon ./bin/www",
+    "test": "jest --runInBand",
+    "test:unit": "jest --runInBand tests/unit",
+    "test:integration": "jest --runInBand tests/integration"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -31,6 +34,8 @@
     "validatorjs": "^3.22.1"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "jest": "^30.4.2",
+    "nodemon": "^3.1.14",
+    "supertest": "^7.2.2"
   }
 }

@@ -25,6 +25,9 @@ A production-oriented multi-vendor e-commerce backend API built with Node.js, Ex
 | Auth | JWT (RBAC) |
 | Docs | Swagger UI |
 | Containers | Docker, Docker Compose |
+| Testing | Jest, Supertest |
+
+![Tests](https://img.shields.io/badge/tests-Jest%20%2B%20Supertest-brightgreen)
 
 ## Why Redis is used
 
@@ -112,6 +115,30 @@ For local API runs, set `POSTGRES_HOST=localhost` in `.env`.
 ```bash
 npm run dev
 ```
+
+## Testing
+
+```bash
+# All tests (unit + integration)
+npm test
+
+# Unit tests only (no database required)
+npm run test:unit
+
+# Integration tests (requires PostgreSQL from .env / docker compose)
+npm run test:integration
+```
+
+Coverage focus:
+
+- Authentication (register/login/validation)
+- Product create & browse
+- Seller permission checks
+- Order placement + inventory decrement
+- Inventory adjustment
+- Return/refund request flow
+
+Integration tests automatically skip when PostgreSQL is unavailable.
 
 ## API Documentation
 
