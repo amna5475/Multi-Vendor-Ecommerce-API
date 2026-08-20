@@ -27,6 +27,7 @@ A production-oriented multi-vendor e-commerce backend API built with Node.js, Ex
 | Containers | Docker, Docker Compose |
 | Testing | Jest, Supertest |
 
+![CI](https://github.com/amna5475/Multi-Vendor-Ecommerce-API/actions/workflows/ci.yml/badge.svg)
 ![Tests](https://img.shields.io/badge/tests-Jest%20%2B%20Supertest-brightgreen)
 
 ## Why Redis is used
@@ -139,6 +140,18 @@ Coverage focus:
 - Return/refund request flow
 
 Integration tests automatically skip when PostgreSQL is unavailable.
+
+## CI/CD
+
+GitHub Actions runs on every push and pull request to `master`/`main`:
+
+1. Install dependencies  
+2. Lint (JavaScript syntax check)  
+3. Run unit + integration tests against PostgreSQL and Redis service containers  
+4. Build the Docker image  
+5. Validate `docker-compose.yml`
+
+Workflow file: [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
 
 ## API Documentation
 

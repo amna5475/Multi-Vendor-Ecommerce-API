@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  test:
+    name: Lint, Test & Build
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: ecommerce_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ecommerce_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      NODE_ENV: test
+      JWT_SECRET: ci_test_jwt_secret_change_me
+      POSTGRES_DBNAME: ecommerce_test
+      POSTGRES_USERNAME: postgres
+      POSTGRES_PASS: postgres
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+      RATE_LIMIT_AUTH_WINDOW: 60
+      RATE_LIMIT_AUTH_MAX: 1000
+      RATE_LIMIT_API_WINDOW: 60
+      RATE_LIMIT_API_MAX: 1000
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Lint (syntax check)
+        run: npm run lint
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build Docker image
+        run: docker build -t multi-vendor-ecommerce-api:ci .
+
+  docker-compose-validate:
+    name: Validate Docker Compose
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate compose file
+        run: docker compose config
